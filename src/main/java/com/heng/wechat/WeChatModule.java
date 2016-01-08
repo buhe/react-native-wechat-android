@@ -14,6 +14,7 @@ import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
 import com.tencent.mm.sdk.modelmsg.SendAuth;
 import com.tencent.mm.sdk.modelmsg.SendMessageToWX;
+import com.tencent.mm.sdk.modelmsg.WXImageObject;
 import com.tencent.mm.sdk.modelmsg.WXMediaMessage;
 import com.tencent.mm.sdk.modelmsg.WXWebpageObject;
 import com.tencent.mm.sdk.modelpay.PayReq;
@@ -57,6 +58,7 @@ public class WeChatModule extends ReactContextBaseJavaModule {
 
     /*============ WeChat share options key ==============*/
     public static final String OPTIONS_LINK = "link";
+    public static final String OPTIONS_PATH = "path";
     public static final String OPTIONS_TAG_NAME = "tagName";
     public static final String OPTIONS_TITLE = "title";
     public static final String OPTIONS_DESC = "desc";
@@ -95,6 +97,7 @@ public class WeChatModule extends ReactContextBaseJavaModule {
     String filePath;           //分享的图片在本地保存的文件路径
 
     File localFile;
+    String path;
 
     /**  Added by heng on 2015/12/22  */
     public static final int DOWNLOAD_OK = 0;
@@ -277,6 +280,64 @@ public class WeChatModule extends ReactContextBaseJavaModule {
         /** Edited by heng on 2015/12/22 */
     }
 
+    /**
+     * <p/>
+     * this method is used to be sharing image to WeChat
+     * <p/>
+     * errCallback return error
+     */
+    @ReactMethod
+    public void sendImage(ReadableMap options, Callback errCallback) {
+        if (WeChatModule.wxApi == null) {
+            if (errCallback != null) {
+                errCallback.invoke("please registerApp before this !");
+            }
+            return;
+        }
+
+        if (options != null) {
+            if (options.hasKey(OPTIONS_PATH)) {
+                path = options.getString(OPTIONS_PATH);
+            }
+            if (options.hasKey(OPTIONS_TAG_NAME)) {
+                tagName = options.getString(OPTIONS_TAG_NAME);
+            }
+            if (options.hasKey(OPTIONS_TITLE)) {
+                title = options.getString(OPTIONS_TITLE);
+            }
+            if (options.hasKey(OPTIONS_DESC)) {
+                desc = options.getString(OPTIONS_DESC);
+            }
+            if (options.hasKey(OPTIONS_SCENE)) {
+                scene = options.getInt(OPTIONS_SCENE);
+            }
+        }
+
+        WXImageObject wxImageObject = new WXImageObject();
+        wxImageObject.imagePath = path;
+        WXMediaMessage msg = new WXMediaMessage(wxImageObject);
+        msg.mediaTagName = tagName;
+        msg.title = title;
+        msg.description = desc;
+
+        SendMessageToWX.Req req = new SendMessageToWX.Req();
+        req.transaction = String.valueOf(System.currentTimeMillis());
+        req.message = msg;
+        switch (scene) {
+            case SCENE_SESSION:
+                req.scene = SendMessageToWX.Req.WXSceneSession;
+                break;
+            case SCENE_TIMELINE:
+                req.scene = SendMessageToWX.Req.WXSceneTimeline;
+                break;
+            case SCENE_FAVORITE:
+                req.scene = SendMessageToWX.Req.WXSceneFavorite;
+                break;
+        }
+        WeChatModule.currentAction = ACTION_SHARE;
+        WeChatModule.wxApi.sendReq(req);
+    }
+
 
     void weChatShare(boolean hasThumb) {
         WXWebpageObject webPage = new WXWebpageObject();
@@ -337,65 +398,6 @@ public class WeChatModule extends ReactContextBaseJavaModule {
         }
         return true;
     }
-    
-    /**
-    * <p/>
-    * this method is used to be sharing image to WeChat
-    * <p/>
-    * errCallback return error
-    */
-   @ReactMethod
-   public void sendImage(ReadableMap options, Callback errCallback) {
-       if (WeChatModule.wxApi == null) {
-           if (errCallback != null) {
-               errCallback.invoke("please registerApp before this !");
-           }
-           return;
-       }
-
-       if (options != null) {
-           if (options.hasKey(OPTIONS_PATH)) {
-               path = options.getString(OPTIONS_PATH);
-           }
-           if (options.hasKey(OPTIONS_TAG_NAME)) {
-               tagName = options.getString(OPTIONS_TAG_NAME);
-           }
-           if (options.hasKey(OPTIONS_TITLE)) {
-               title = options.getString(OPTIONS_TITLE);
-           }
-           if (options.hasKey(OPTIONS_DESC)) {
-               desc = options.getString(OPTIONS_DESC);
-           }
-           if (options.hasKey(OPTIONS_SCENE)) {
-               scene = options.getInt(OPTIONS_SCENE);
-           }
-       }
-
-       WXImageObject wxImageObject = new WXImageObject();
-       wxImageObject.imagePath = path;
-       WXMediaMessage msg = new WXMediaMessage(wxImageObject);
-       msg.mediaTagName = tagName;
-       msg.title = title;
-       msg.description = desc;
-
-       SendMessageToWX.Req req = new SendMessageToWX.Req();
-       req.transaction = String.valueOf(System.currentTimeMillis());
-       req.message = msg;
-       switch (scene) {
-           case SCENE_SESSION:
-               req.scene = SendMessageToWX.Req.WXSceneSession;
-               break;
-           case SCENE_TIMELINE:
-               req.scene = SendMessageToWX.Req.WXSceneTimeline;
-               break;
-           case SCENE_FAVORITE:
-               req.scene = SendMessageToWX.Req.WXSceneFavorite;
-               break;
-       }
-       WeChatModule.currentAction = ACTION_SHARE;
-       WeChatModule.wxApi.sendReq(req);
-   }
-
 
     /**
      * Added by heng on 2015/12/18
